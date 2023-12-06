@@ -1,0 +1,55 @@
+---
+
+- block:
+    - name: debian | Install debian-goodies for Debian 7
+      package:
+        name: 'debian-goodies'
+        state: present
+  when: ansible_distribution_major_version | int == 7
+  tags:
+    - needrestart
+
+- block:
+    - name: debian | Install needrestart for Debian 8 and later
+      apt:
+        name: 'needrestart'
+        state: present
+
+    - name: debian | Enable service auto-restart
+      lineinfile:
+        dest: '/etc/apt/apt.conf.d/99needrestart'
+        backup: yes
+        line: 'DPkg::Post-Invoke {"test -x /usr/lib/needrestart/apt-pinvoke && /usr/lib/needrestart/apt-pinvoke -ra || true"; };'
+        regexp: '^DPkg::Post-Invoke\b.*\bapt-pinvoke\b'
+        state: present
+
+  when: ansible_distribution_major_version | int > 7
+  tags:
+    - needrestart
+
+- block:
+    - name: debian | Add contrib and non-free archive components on Debian 10 and 11
+      apt_repository:
+        repo: deb http://mirror.mephi.ru/debian/ {{ ansible_distribution_release }} {{ item }}
+        filename: "{{ ansible_distribution_release }}"
+        state: present
+        update_cache: true
+      loop:
+        - 'contrib'
+        - 'non-free'
+
+    - name: debian | Install intel microcode
+      apt:
+        name: 'intel-microcode'
+        state: present
+
+  when: >-
+    (    ansible_distribution_major_version    | int == 10
+         or ansible_distribution_major_version | int == 11
+    )
+    and "GenuineIntel" in ansible_facts.processor
+    and ansible_facts.virtualization_role == "host"
+  tags:
+    - needrestart
+    - microcode
+

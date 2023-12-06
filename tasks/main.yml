@@ -1,0 +1,10 @@
+---
+
+- block:
+    - name: updates | Additional config for debian
+      import_tasks: debian.yml
+  when: ansible_distribution == "Debian"
+  tags:
+    - debian
+    - updates
+
